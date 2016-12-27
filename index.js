@@ -21,9 +21,18 @@ var _options = {
 
 module.exports = function( app, options ) {
 	
+	
+	
 	//first step: parse and validate options.
 	options = _.extend({},_options,options);	
 	
+	var appListen = app.listen,
+		appListenArguments = [];
+	
+	app.listen = function(){
+		options.log('app.listen (deferred)');
+		appListenArguments = arguments;
+	};
 	require('./lib/validateOptions')(options);
 	
 	//second step: generate the file list
@@ -47,7 +56,7 @@ module.exports = function( app, options ) {
 		});
 		
 		//fourth step: run first build
-		var buildFn = function(){ 
+		var buildFn = function(next){ 
 		
 			await(build,function(errors,results){
 				
@@ -56,20 +65,13 @@ module.exports = function( app, options ) {
 				}else{
 					options.log('express-aglio: docs built successfully');
 				}
-				
+				next();
 			});
 			
 		};
 		
 		//fifth step: make first build
-		var firstBuild = [function(next){
-			
-			buildFn();
-			next();
-			
-		}];
-		
-		await(firstBuild,function(){
+		await([buildFn],function(){
 			
 			//sixth and final step: setup watch and routes
 			if(options.watch){
@@ -80,9 +82,17 @@ module.exports = function( app, options ) {
 			}
 			if(options.expose){
 				var express = require('express');
+				options.log(options);
 				app.use(options.uri,express.static(options.serveDir));
+				
 			}
 			
+			var routes = app._router.stack;
+			options.log(routes);
+  
+			app.listen = appListen;
+			options.log('app.listen (real)');
+			app.listen.apply(app,appListenArguments);
 		});
 		
 	});
