@@ -65,7 +65,7 @@ module.exports = function( app, options ) {
 				}else{
 					options.log('express-aglio: docs built successfully');
 				}
-				next();
+				if(typeof next == 'function') next(); //closes #1
 			});
 			
 		};
