@@ -1,8 +1,11 @@
-var _ = require('lodash');
-var await = require('async-await-callables'); // see https://www.npmjs.com/package/async-await-callables for api
-var aglio = require('aglio');
+const _ = require('lodash');
+const await = require('async-await-callables'); // see https://www.npmjs.com/package/async-await-callables for api
+const aglio = require('aglio');
+const watch = require('node-watch');
+const path = require('path');
+const fs = require('fs');
 
-var _options = {
+const _options = {
 	
 	source: '',//input path/file eg /docs/source/index.apib OR /docs/source
 	output: '',//output path/file eg /docs/html/index.html OR /docs/html
@@ -21,19 +24,27 @@ var _options = {
 
 module.exports = function( app, options ) {
 	
-	
-	
 	//first step: parse and validate options.
 	options = _.extend({},_options,options);	
 	
-	var appListen = app.listen,
-		appListenArguments = [];
-	
-	app.listen = function(){
-		options.log('app.listen (deferred)');
-		appListenArguments = arguments;
-	};
 	require('./lib/validateOptions')(options);
+    
+    var outputIsDir = fs.lstatSync(options.output).isDirectory();
+    options.serveDir = options.output;
+    
+    if(!outputIsDir){
+		options.serveDir = options.serveDir.split('/');
+		options.serveDir.pop();
+		options.serveDir = options.serveDir.join('/') +'/';
+	}
+    
+    //mount doc route immediately
+    if(options.expose){
+        var express = require('express');
+        options.log(options);
+        app.use(options.uri,express.static(options.serveDir));
+    }
+	
 	
 	//second step: generate the file list
 	require('./lib/generateFileList')(options,function(fileList){
@@ -72,27 +83,14 @@ module.exports = function( app, options ) {
 		
 		//fifth step: make first build
 		await([buildFn],function(){
-			
+            options.log('express-aglio: built docs(startup)');
 			//sixth and final step: setup watch and routes
 			if(options.watch){
 				//build docs on every change.
-				var watch = require('node-watch');
-				watch(options.source,buildFn);
+				watch(path.dirname(options.source),buildFn);
 				options.log('express-aglio: watching filesystem for changes');
 			}
-			if(options.expose){
-				var express = require('express');
-				options.log(options);
-				app.use(options.uri,express.static(options.serveDir));
-				
-			}
 			
-			var routes = app._router.stack;
-			options.log(routes);
-  
-			app.listen = appListen;
-			options.log('app.listen (real)');
-			app.listen.apply(app,appListenArguments);
 		});
 		
 	});
