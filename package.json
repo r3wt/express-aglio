@@ -21,10 +21,10 @@
   "author": "Garrett Morris <stuckinabox@live.com> (https://github.com/r3wt)",
   "license": "MIT",
   "devDependencies": {
-    "express": "^4.14.0"
+    "express": "^4.17.1"
   },
   "dependencies": {
     "aglio": "^2.3.0",
-    "node-watch": "^0.4.1"
+    "node-watch": "^0.6.3"
   }
 }
