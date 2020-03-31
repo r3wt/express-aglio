@@ -1,6 +1,6 @@
 {
   "name": "express-aglio",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "glues aglio into express in a convenient manner.",
   "main": "index.js",
   "scripts": {
